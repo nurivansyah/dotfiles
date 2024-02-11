@@ -136,4 +136,24 @@ else
         _cmd "git -C $DOTFILES_DIR pull --quiet"
 fi
 
+
+pushd "$DOTFILES_DIR" 2>&1 > /dev/null
+_task "Updating Galaxy"
+    _cmd "ansible-galaxy install -r requirements.yml"
+
+_task "Running playbook"; _task_done
+if [[ -f $VAULT_SECRET ]]; then
+    ansible-playbook --vault-password-file $VAULT_SECRET "$DOTFILES_DIR/main.yml" "$@"
+else
+    ansible-playbook --ask-become-pass "$DOTFILES_DIR/main.yml" "$@"
+fi
+
+popd 2>&1 > /dev/null
+
+if ! [[ -f "$IS_FIRST_RUN" ]]; then
+    echo -e "${CHECK_MARK} ${GREEN}First run complete!${NC}"
+    echo -e "${ARROW} ${CYAN}Please reboot your computer to complete the setup.${NC}"
+    touch "$IS_FIRST_RUN"
+fi
+
 # vi:ft=sh:
