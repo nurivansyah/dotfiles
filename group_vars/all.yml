@@ -6,6 +6,7 @@ default_roles:
   - pyenv
   - npm
   - nvm
+  - nvim
 
 go:
   # packages:
