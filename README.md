@@ -33,3 +33,18 @@ sudo apt-get update && sudo apt-get upgrade -y
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/nurivansyah/dotfiles/main/bin/dotfiles)"
 ```
+
+### Update
+```bash
+~/.dotfiles/bin/dotfiles
+```
+
+update on specific role 
+```bash
+~/.dotfiles/bin/dotfiles -t [role-name]
+```
+
+exclude specific role from default list
+```bash
+~/.dotfiles/bin/dotfiles --skip-tags [role-name]
+```
