@@ -1,0 +1,7 @@
+---
+- name: Run Go Tasks for Zorin
+  ansible.builtin.import_tasks: zorin.yml
+  when: ansible_os_family == 'Zorin OS' or ansible_os_family == 'Debian'  or ansible_os_family == 'Ubuntu'
+
+- name: Install Packages
+  import_tasks: packages.yml

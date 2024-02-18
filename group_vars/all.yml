@@ -1,3 +1,9 @@
 default_roles:
   - nala
   - tmux
+  - go
+
+go:
+  # packages:
+    # - package: github.com/stillmatic/chat@latest
+    #   cmd: chat
