@@ -4,6 +4,8 @@ default_roles:
   - tmux
   - go
   - pyenv
+  - npm
+  - nvm
 
 go:
   # packages:

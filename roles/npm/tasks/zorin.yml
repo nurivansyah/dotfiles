@@ -1,0 +1,96 @@
+---
+- name: "NPM | Get latest STABLE NodeJS version"
+  ansible.builtin.shell:
+    cmd: curl -sL https://nodejs.org/dist/index.json | jq -r '.[] | select(.lts) | .version' | head -n 1
+  register: nodejs_latest_version
+  changed_when: false
+
+- name: "NPM | Check if NodeJS is installed"
+  ansible.builtin.command: node --version
+  register: nodejs_installed
+  failed_when: false
+  changed_when: false
+
+- name: "NPM | Check if NodeJS is up to date"
+  ansible.builtin.command: node --version
+  register: nodejs_up_to_date
+  failed_when: false
+  changed_when: false
+
+- name: "NPM | Show NodeJS version"
+  ansible.builtin.debug:
+    msg: "Installed NodeJS version: {{ nodejs_installed.stdout }}"
+
+- name: "NPM | Show NodeJS latest version"
+  ansible.builtin.debug:
+    msg: "Online NodeJS LTS version: {{ nodejs_latest_version.stdout }}"
+
+- name: "NPM | Register update needed"
+  ansible.builtin.set_fact:
+    nodejs_install_needed: true
+  when:
+    # - nodejs_installed.rc == 0
+    # - nodejs_up_to_date.rc != 0
+    - nodejs_up_to_date.stdout != nodejs_latest_version.stdout
+
+- name: "NPM | Install NodeJS"
+  become: true
+  when:
+    - nodejs_install_needed is defined
+    - nodejs_install_needed
+  block:
+    - name: "NPM | Get System Arch"
+      ansible.builtin.set_fact:
+        nodejs_arch: "{{ ansible_machine | replace('x86_64', 'x64') | replace('aarch64', 'arm64') }}"
+
+    - name: "NPM | Register Pagkage Name"
+      ansible.builtin.set_fact:
+        nodejs_package_name: "node-{{ nodejs_latest_version.stdout }}-{{ ansible_system | lower }}-{{ nodejs_arch }}"
+
+    - name: "NPM | Ensure clean download destination"
+      ansible.builtin.file:
+        path: "/tmp/{{ nodejs_package_name }}.tar.xz"
+        state: absent
+      become: true
+
+    - name: "NPM | Downloading NodeJS Release"
+      ansible.builtin.get_url:
+        url: "https://nodejs.org/dist/{{ nodejs_latest_version.stdout }}/{{ nodejs_package_name }}.tar.xz"
+        dest: /tmp/
+        mode: 0644
+        force: true
+      notify:
+        - Cleanup node downloaded tar
+
+    - name: "NPM | Ensure clean extraction destination"
+      ansible.builtin.file:
+        path: "/tmp/{{ nodejs_package_name }}"
+        state: absent
+      become: true
+
+    - name: "NPM | Extract NodeJS tar file"
+      ansible.builtin.unarchive:
+        src: /tmp/{{ nodejs_package_name }}.tar.xz
+        dest: /tmp
+    
+    - name: "NPM | Remove any current Node installations"
+      ansible.builtin.file:
+        path: /usr/local/nodejs
+        state: absent
+      become: true
+
+    - name: "NPM | Copy NodeJS Binary"
+      ansible.builtin.copy:
+        remote_src: true
+        src: /tmp/{{ nodejs_package_name }}
+        dest: /usr/local/
+        owner: "{{ host_user }}"
+        group: "{{ host_user }}"
+        force: true
+      become: true
+      notify:
+        - Remove extracted node directory
+    
+    - name: "NPM | Rename NodeJS Directory"
+      ansible.builtin.command: mv /usr/local/{{ nodejs_package_name }} /usr/local/nodejs
+      become: true
