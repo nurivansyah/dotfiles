@@ -48,11 +48,11 @@
     directory_mode: 0755
     force: true
 
-# - name: "Bash | Set default terminal"
-#   user:
-#     name: "{{ host_user }}"
-#     shell: /usr/bin/bash
-#   become: true
+- name: "Bash | Set default terminal"
+  user:
+    name: "{{ host_user }}"
+    shell: /usr/bin/bash
+  become: true
 
 # - name: "Bash | Set private variables"
 #   ansible.builtin.template:

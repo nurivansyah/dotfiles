@@ -7,7 +7,7 @@ default_roles:
   - npm
   - nvm
   - nvim
-  - zsh
+  - bash
 
 go:
   # packages:
