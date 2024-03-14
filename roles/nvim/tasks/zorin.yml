@@ -1,5 +1,5 @@
 ---
-- name: "Nvim | Dependencies"
+- name: "Neovim | Dependencies"
   ansible.builtin.apt:
     name:
       - cmake
@@ -13,20 +13,20 @@
     state: present
   become: true
 
-- name: "Nvim | Install"
+- name: "Neovim | Install"
   community.general.snap:
     name: nvim
     classic: true
     state: present
   become: true
 
-- name: "Nvim | Install NvChad"
+- name: "Neovim | Install NvChad"
   ansible.builtin.git:
     repo: https://github.com/NvChad/NvChad
     dest: ~/.config/nvim
     depth: 1
 
-- name: "Nvim | Configure NvChad"
+- name: "Neovim | Configure NvChad"
   ansible.builtin.copy:
     src: custom
     dest: "{{ ansible_user_dir }}/.config/nvim/lua/"
