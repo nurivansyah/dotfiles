@@ -1,0 +1,117 @@
+---
+- name: "Neovim | Dependencies"
+  ansible.builtin.apt:
+    name:
+      - cmake
+      - curl
+      - pkg-config
+      - libtool
+      - unzip
+      - ansible-lint
+      - ripgrep
+      - software-properties-common
+    state: present
+  become: true
+
+- name: "Neovim | Getting version information"
+  ansible.builtin.command: "/usr/local/nvim/bin/nvim -v"
+  register: current_nvim_version
+  changed_when: false
+  failed_when: false
+
+- name: "Neovim | Querying Latest Release JSON"
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/neovim/neovim/releases/latest
+  register: nvim_latest_release_json
+  changed_when: false
+
+- name: "Neovim | Registering Nvim Latest Version"
+  ansible.builtin.set_fact:
+    nvim_latest_version: "NVIM {{ nvim_latest_release_json.json.tag_name }}"
+
+- name: "Neovim | Registering Nvim Latest Release"
+  ansible.builtin.set_fact:
+    nvim_latest_release: "{{ nvim_latest_release_json.json.tag_name }}"
+
+- name: "Neovim | Define nvim_file"
+  ansible.builtin.set_fact:
+    nvim_file: "nvim-linux64"
+
+- name: "Neovim | Show current_nvim_version debug"
+  ansible.builtin.debug:
+    var: current_nvim_version.stdout|default('')
+
+- name: "Neovim | Show nvim_latest_version debug"
+  ansible.builtin.debug:
+    var: nvim_latest_version
+
+- name: "Neovim | Show nvim_latest_release debug"
+  ansible.builtin.debug:
+    var: nvim_latest_release
+
+- name: "Neovim | Install"
+  block:
+    - name: "Neovim | Ensure clean download destination"
+      ansible.builtin.file:
+        path: "/tmp/{{ nvim_file }}.tar.gz"
+        state: absent
+      become: true
+
+    - name: "Neovim | Downloading Neovim Release"
+      ansible.builtin.get_url:
+        url: "https://github.com/neovim/neovim/releases/download/{{ nvim_latest_release }}/{{ nvim_file }}.tar.gz"
+        dest: /tmp/
+        mode: 0644
+        force: true
+      notify:
+        - Cleanup neovim downloaded tar
+
+    - name: "Neovim | Ensure clean extraction destination"
+      ansible.builtin.file:
+        path: "/tmp/{{ nvim_file }}"
+        state: absent
+      become: true
+
+    - name: "Neovim | Extract Neovim tar file"
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ nvim_file }}.tar.gz"
+        dest: /tmp
+
+    - name: "Neovim | Remove any current Nvim installations"
+      ansible.builtin.file:
+        path: /usr/local/nvim
+        state: absent
+      become: true
+
+    - name: "Neovim | Install Neovim"
+      ansible.builtin.copy:
+        remote_src: true
+        src: /tmp/{{ nvim_file }}
+        dest: /usr/local/
+        owner: "{{ host_user }}"
+        group: "{{ host_user }}"
+        force: true
+      become: true
+      notify:
+        - Remove extracted nvim directory
+
+    - name: "Neovim | Rename Neovim Directory"
+      ansible.builtin.command: mv /usr/local/{{ nvim_file }} /usr/local/nvim
+      become: true
+
+  when: nvim_latest_version not in current_nvim_version.stdout|default('')
+
+- name: "Neovim | Install NvChad"
+  ansible.builtin.git:
+    repo: https://github.com/NvChad/starter
+    dest: ~/.config/nvim
+    depth: 1
+    force: true
+
+- name: "Neovim | Configure NvChad"
+  ansible.builtin.copy:
+    src: custom
+    dest: "{{ ansible_user_dir }}/.config/nvim/lua/"
+    mode: 0644
+    directory_mode: 0755
+    force: true

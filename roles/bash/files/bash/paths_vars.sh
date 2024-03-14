@@ -9,3 +9,4 @@ addToPathFront $HOME/.local/bin
 
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:/usr/local/nodejs/bin
+export PATH=$PATH:/usr/local/nvim/bin
