@@ -1,0 +1,4 @@
+---
+- name: Run Docker Tasks for Debian
+  ansible.builtin.import_tasks: debian.yml
+  when: ansible_os_family == 'Debian'

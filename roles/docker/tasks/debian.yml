@@ -1,0 +1,92 @@
+---
+# These steps are based on the official Docker documentation: https://docs.docker.com/engine/install/debian/
+- name: "Docker | Update APT cache"
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+
+- name: "Docker | Install dependencies"
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: "Docker | Create keyrings directory"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: 0755
+
+- name: "Docker | Add Docker GPG key"
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: 0444  # Set read-only permission
+  become: true
+
+- name: "Docker | Get System Architecture"
+  ansible.builtin.command: "dpkg --print-architecture"
+  register: dpkg_architecture
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "Docker | Add Docker’s stable repository"
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list.d/docker.list
+    state: present
+    create: yes
+    line: 'deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable'
+  become: true
+
+- name: "Docker | Install Docker Engine"
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  become: true
+
+- name: "Docker | Enable service"
+  ansible.builtin.systemd:
+    enabled: true
+    name: docker
+    state: started
+  become: true
+  when: not ansible_host_environment_is_wsl
+
+- name: "Docker | Enable service (WSL)"
+  ansible.builtin.service:
+    enabled: true
+    name: docker
+    state: started
+  become: true
+  when: ansible_host_environment_is_wsl
+
+- name: "Docker | Add to group"
+  ansible.builtin.user:
+    append: true
+    groups: docker
+    name: "{{ ansible_env['USER'] }}"
+  become: true
+
+- name: "Docker | Ensure docker data directory exists"
+  ansible.builtin.file:
+    path: "{{  ansible_user_dir }}/.local/lib/docker"
+    state: directory
+    mode: "0710"
+  become: true
+
+- name: "Docker | Copy daemon.json"
+  ansible.builtin.template:
+    dest: "/etc/docker/daemon.json"
+    src: "daemon.json"
+    mode: "0644"
+  become: true
+  notify: restart_docker
