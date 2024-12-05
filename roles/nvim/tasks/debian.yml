@@ -93,7 +93,7 @@
         force: true
       become: true
       notify:
-        - Remove extracted nvim directory
+        - Remove extracted neovim directory
 
     - name: "Neovim | Rename Neovim Directory"
       ansible.builtin.command: mv /usr/local/{{ nvim_file }} /usr/local/nvim
